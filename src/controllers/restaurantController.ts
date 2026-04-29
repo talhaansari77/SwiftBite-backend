@@ -142,3 +142,27 @@ export const addMenuItemsBulk = async (req: Request, res: Response): Promise<voi
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
+
+// @desc    Update restaurant
+// @route   PUT /api/restaurants/:id
+export const updateRestaurant = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body },
+      { new: true }
+    )
+
+    if (!restaurant) {
+      res.status(404).json({ message: "Restaurant not found" })
+      return
+    }
+
+    res.status(200).json({
+      message: "Restaurant updated successfully",
+      restaurant,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}

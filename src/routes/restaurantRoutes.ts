@@ -6,6 +6,7 @@ import {
   getMenuItems,
   addMenuItem,
   addMenuItemsBulk,
+  updateRestaurant
 } from "../controllers/restaurantController"
 import { protect } from "../middleware/authMiddleware"
 
@@ -17,5 +18,6 @@ router.post("/", protect, createRestaurant)
 router.get("/:id/menu", getMenuItems)
 router.post("/:id/menu", protect, addMenuItem)
 router.post("/:id/menu/bulk", protect, addMenuItemsBulk)
+router.put("/:id", protect, updateRestaurant)
 
 export default router
