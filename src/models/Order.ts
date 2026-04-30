@@ -17,6 +17,7 @@ export interface IOrder extends Document {
   status: "pending" | "confirmed" | "preparing" | "on_the_way" | "delivered" | "cancelled"
   address: string
   paymentStatus: "pending" | "paid" | "failed"
+  paymentMethod: "cash" | "online"
   paymentIntentId?: string
   createdAt: Date
 }
@@ -56,6 +57,11 @@ const OrderSchema = new Schema<IOrder>(
     address: {
       type: String,
       required: true,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "online"],
+      default: "cash",
     },
     paymentStatus: {
       type: String,

@@ -1,12 +1,13 @@
 import { Request, Response } from "express"
 import Order from "../models/Order"
 import Restaurant from "../models/Restaurant"
+import { io } from "../index"
 
 // @desc    Create a new order
 // @route   POST /api/orders
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { restaurantId, items, address } = req.body
+    const { restaurantId, items, address, paymentMethod = "cash" } = req.body
 
     if (!restaurantId || !items || !address) {
       res.status(400).json({ message: "All fields are required" })
@@ -33,6 +34,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       totalAmount,
       deliveryFee: restaurant.deliveryFee,
       address,
+      paymentMethod,
     })
 
     res.status(201).json({
@@ -75,12 +77,13 @@ export const getOrder = async (req: Request, res: Response): Promise<void> => {
   }
 }
 
-// @desc    Update order status
+// @desc    Update order status and notify customer in real-time
 // @route   PUT /api/orders/:id/status
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.body
 
+    // Update order status in database
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -92,6 +95,14 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       return
     }
 
+    // Emit real-time update to the customer
+    // Only the customer in this order's room will receive this
+    io.to(order._id.toString()).emit("order_status_update", {
+      orderId: order._id,
+      status: order.status,
+      message: getStatusMessage(status),
+    })
+
     res.status(200).json({
       message: "Order status updated",
       order,
@@ -99,6 +110,18 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
   } catch (error: any) {
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
+}
+
+// Helper function to get a friendly message for each status
+const getStatusMessage = (status: string): string => {
+  const messages: Record<string, string> = {
+    confirmed: "Your order has been confirmed! ✅",
+    preparing: "The restaurant is preparing your order 👨‍🍳",
+    on_the_way: "Your order is on the way! 🛵",
+    delivered: "Your order has been delivered! 🎉",
+    cancelled: "Your order has been cancelled ❌",
+  }
+  return messages[status] || "Order status updated"
 }
 
 // @desc    Get restaurant orders (for restaurant owner)
