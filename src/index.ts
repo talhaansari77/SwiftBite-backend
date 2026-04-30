@@ -14,6 +14,7 @@ import authRoutes from "./routes/authRoutes"
 import restaurantRoutes from "./routes/restaurantRoutes"
 import orderRoutes from "./routes/orderRoutes"
 import uploadRoutes from "./routes/uploadRoutes"
+import reviewRoutes from "./routes/reviewRoutes"
 
 // Create Express app
 const app = express()
@@ -33,7 +34,7 @@ export const io = new Server(httpServer, {
 })
 
 // Use PORT from environment variables or fallback to 5000 for local development
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
 // Connect to MongoDB Atlas
 connectDB()
@@ -96,6 +97,7 @@ app.use("/api/auth", authRoutes)           // login, register, profile
 app.use("/api/restaurants", restaurantRoutes) // restaurant & menu management
 app.use("/api/orders", orderRoutes)        // order placement & tracking
 app.use("/api/upload", uploadRoutes)       // image uploads to Cloudinary
+app.use("/api/reviews", reviewRoutes)
 
 // Catch-all route for any undefined routes
 // returns 404 if no route matches the request
