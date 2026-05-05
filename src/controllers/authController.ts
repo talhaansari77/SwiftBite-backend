@@ -122,10 +122,10 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { address, phone } = req.body
+    const { address, phone, name } = req.body
     const user = await User.findByIdAndUpdate(
       (req as any).userId,
-      { address, phone },
+      { address, phone, name },
       { new: true }
     ).select("-password")
 
