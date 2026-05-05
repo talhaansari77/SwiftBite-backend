@@ -8,6 +8,8 @@ export interface IUser extends Document {
   address: string
   avatar?: string
   role: "customer" | "restaurant" | "driver"
+  resetPasswordToken?: string
+  resetPasswordExpiry?: Date
   createdAt: Date
 }
 
@@ -46,6 +48,14 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: ["customer", "restaurant", "driver"],
       default: "customer",
+    },
+     resetPasswordToken: {
+      type: String,
+      default: undefined,
+    },
+    resetPasswordExpiry: {
+      type: Date,
+      default: undefined,
     },
   },
   { timestamps: true }

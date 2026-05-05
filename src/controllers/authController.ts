@@ -2,6 +2,8 @@ import { Request, Response } from "express"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import User from "../models/User"
+import crypto from "crypto"
+import { sendPasswordResetEmail } from "../config/emailService"
 
 const generateToken = (id: string, role: string): string => {
   const secret = process.env.JWT_SECRET as string
@@ -130,6 +132,95 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     ).select("-password")
 
     res.status(200).json({ message: "Profile updated", user })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Forgot password - sends reset token via email
+// @route   POST /api/auth/forgot-password
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required" })
+      return
+    }
+
+    // Find user
+    const user = await User.findOne({ email })
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      res.status(200).json({ message: "If this email exists you will receive a reset code" })
+      return
+    }
+
+    // Generate 6 digit reset token
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString()
+
+    // Hash the token before saving
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex")
+
+    // Save token and expiry to user
+    await User.findByIdAndUpdate(user._id, {
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+    })
+
+    // Send email
+    await sendPasswordResetEmail(email, resetToken)
+
+    res.status(200).json({
+      message: "Reset code sent to your email"
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Reset password using token
+// @route   POST /api/auth/reset-password
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body
+
+    if (!token || !newPassword) {
+      res.status(400).json({ message: "Token and new password are required" })
+      return
+    }
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+
+    // Find user with valid token
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: { $gt: new Date() },
+    })
+
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired reset code" })
+      return
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12)
+
+    // Update password and clear reset token
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      resetPasswordToken: undefined,
+      resetPasswordExpiry: undefined,
+    })
+
+    res.status(200).json({ message: "Password reset successfully" })
   } catch (error: any) {
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
