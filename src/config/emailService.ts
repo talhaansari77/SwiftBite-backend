@@ -1,32 +1,15 @@
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
-// Create reusable transporter using Gmail
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS,
-//   },
-// })
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  debug: true,
-  logger: true,
-})
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Send password reset email
 export const sendPasswordResetEmail = async (
   email: string,
   resetToken: string
 ): Promise<void> => {
-  const resetUrl = `swiftbite://reset-password/${resetToken}`
-
-  const mailOptions = {
-    from: `"SwiftBite 🍔" <${process.env.EMAIL_USER}>`,
+  const { error } = await resend.emails.send({
+    from: "SwiftBite <onboarding@resend.dev>",
     to: email,
     subject: "Reset Your SwiftBite Password",
     html: `
@@ -58,16 +41,9 @@ export const sendPasswordResetEmail = async (
         </div>
       </div>
     `,
-  }
+  })
 
-  await transporter.sendMail(mailOptions)
-}
-
-// Verify email connection on startup
-transporter.verify((error, success) => {
   if (error) {
-    console.error("Email service error:", error)
-  } else {
-    console.log("✅ Email service ready!")
+    throw new Error(error.message)
   }
-})
+}
