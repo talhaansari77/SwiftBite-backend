@@ -151,21 +151,21 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     // Find user
     const user = await User.findOne({ email })
     if (!user) {
-      res.status(200).json({ message: "If this email exists you will receive a reset code" })
+      res.status(404).json({ message: "No account found with this email" })
       return
     }
 
     // Prevent spam — only allow new token every 1 minute
-if (user.resetPasswordExpiry) {
-  const timeLeft = user.resetPasswordExpiry.getTime() - Date.now()
-  const oneMinute = 14 * 60 * 1000 // 14 minutes left means token is less than 1 min old
-  if (timeLeft > oneMinute) {
-    res.status(400).json({ 
-      message: "Please wait before requesting another code" 
-    })
-    return
-  }
-}
+    if (user.resetPasswordExpiry) {
+      const timeLeft = user.resetPasswordExpiry.getTime() - Date.now()
+      const oneMinute = 14 * 60 * 1000 // 14 minutes left means token is less than 1 min old
+      if (timeLeft > oneMinute) {
+        res.status(400).json({
+          message: "Please wait before requesting another code"
+        })
+        return
+      }
+    }
 
     // Generate 6 digit reset token
     const resetToken = Math.floor(100000 + Math.random() * 900000).toString()

@@ -1,12 +1,21 @@
 import nodemailer from "nodemailer"
 
 // Create reusable transporter using Gmail
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS,
+//   },
+// })
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  debug: true,
+  logger: true,
 })
 
 // Send password reset email
@@ -53,3 +62,12 @@ export const sendPasswordResetEmail = async (
 
   await transporter.sendMail(mailOptions)
 }
+
+// Verify email connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("Email service error:", error)
+  } else {
+    console.log("✅ Email service ready!")
+  }
+})
