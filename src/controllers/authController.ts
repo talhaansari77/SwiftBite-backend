@@ -151,13 +151,25 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     // Find user
     const user = await User.findOne({ email })
     if (!user) {
-      // Don't reveal if email exists or not for security
       res.status(200).json({ message: "If this email exists you will receive a reset code" })
       return
     }
 
+    // Prevent spam — only allow new token every 1 minute
+if (user.resetPasswordExpiry) {
+  const timeLeft = user.resetPasswordExpiry.getTime() - Date.now()
+  const oneMinute = 14 * 60 * 1000 // 14 minutes left means token is less than 1 min old
+  if (timeLeft > oneMinute) {
+    res.status(400).json({ 
+      message: "Please wait before requesting another code" 
+    })
+    return
+  }
+}
+
     // Generate 6 digit reset token
     const resetToken = Math.floor(100000 + Math.random() * 900000).toString()
+    console.log("Generated token:", resetToken)
 
     // Hash the token before saving
     const hashedToken = crypto
@@ -168,16 +180,28 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     // Save token and expiry to user
     await User.findByIdAndUpdate(user._id, {
       resetPasswordToken: hashedToken,
-      resetPasswordExpiry: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      resetPasswordExpiry: new Date(Date.now() + 15 * 60 * 1000),
     })
+
+    console.log("Token saved to database")
+    console.log("Sending email to:", email)
+    console.log("EMAIL_USER:", process.env.EMAIL_USER)
+    console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS)
 
     // Send email
-    await sendPasswordResetEmail(email, resetToken)
-
-    res.status(200).json({
-      message: "Reset code sent to your email"
-    })
+    try {
+      await sendPasswordResetEmail(email, resetToken)
+      console.log("Email sent successfully!")
+      res.status(200).json({ message: "Reset code sent to your email" })
+    } catch (emailError: any) {
+      console.error("Email sending failed:", emailError.message)
+      res.status(500).json({
+        message: "Failed to send email",
+        error: emailError.message,
+      })
+    }
   } catch (error: any) {
+    console.error("Forgot password error:", error.message)
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
