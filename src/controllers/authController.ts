@@ -15,7 +15,7 @@ const generateToken = (id: string, role: string): string => {
 // @route   POST /api/auth/register
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, phone } = req.body
+    const { name, email, password, phone, role } = req.body
 
     // Check all fields
     if (!name || !email || !password || !phone) {
@@ -39,6 +39,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       email,
       password: hashedPassword,
       phone,
+      role: role || "customer",
     })
 
     // Generate token
