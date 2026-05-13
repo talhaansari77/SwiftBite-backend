@@ -170,3 +170,35 @@ export const updateRestaurant = async (req: Request, res: Response): Promise<voi
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
+
+// @desc    Update menu item
+// @route   PUT /api/restaurants/:id/menu/:itemId
+export const updateMenuItem = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const menuItem = await MenuItem.findByIdAndUpdate(
+      req.params.itemId,
+      { ...req.body },
+      { new: true }
+    )
+
+    if (!menuItem) {
+      res.status(404).json({ message: "Menu item not found" })
+      return
+    }
+
+    res.status(200).json({ message: "Menu item updated", menuItem })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Delete menu item
+// @route   DELETE /api/restaurants/:id/menu/:itemId
+export const deleteMenuItem = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await MenuItem.findByIdAndDelete(req.params.itemId)
+    res.status(200).json({ message: "Menu item deleted" })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
