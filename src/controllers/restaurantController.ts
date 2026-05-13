@@ -6,16 +6,20 @@ import MenuItem from "../models/MenuItem"
 // @route   GET /api/restaurants
 export const getRestaurants = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { cuisine, search } = req.query
+    const { cuisine, search, ownerId } = req.query
 
     let query: any = {}
 
-    if (cuisine) {
+    if (cuisine && cuisine !== "all") {
       query.cuisine = cuisine
     }
 
     if (search) {
       query.name = { $regex: search, $options: "i" }
+    }
+
+    if (ownerId) {
+      query.ownerId = ownerId
     }
 
     const restaurants = await Restaurant.find(query).sort({ createdAt: -1 })
