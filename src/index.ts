@@ -15,6 +15,8 @@ import restaurantRoutes from "./routes/restaurantRoutes"
 import orderRoutes from "./routes/orderRoutes"
 import uploadRoutes from "./routes/uploadRoutes"
 import reviewRoutes from "./routes/reviewRoutes"
+import promoRoutes from "./routes/promoRoutes"
+
 
 // Create Express app
 const app = express()
@@ -98,6 +100,7 @@ app.use("/api/restaurants", restaurantRoutes) // restaurant & menu management
 app.use("/api/orders", orderRoutes)        // order placement & tracking
 app.use("/api/upload", uploadRoutes)       // image uploads to Cloudinary
 app.use("/api/reviews", reviewRoutes)
+app.use("/api/promo", promoRoutes)
 
 // Catch-all route for any undefined routes
 // returns 404 if no route matches the request
