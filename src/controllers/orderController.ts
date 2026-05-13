@@ -137,3 +137,83 @@ export const getRestaurantOrders = async (req: Request, res: Response): Promise<
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
+
+// @desc    Get restaurant analytics
+// @route   GET /api/orders/restaurant/:restaurantId/analytics
+export const getRestaurantAnalytics = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { restaurantId } = req.params
+
+    // Get all orders for this restaurant
+    const orders = await Order.find({
+      restaurantId: String(restaurantId),
+    })
+
+    // Total orders
+    const totalOrders = orders.length
+
+    // Total revenue (delivered orders only)
+    const totalRevenue = orders
+      .filter((o) => o.status === "delivered")
+      .reduce((sum, o) => sum + o.totalAmount + o.deliveryFee, 0)
+
+    // Orders by status
+    const ordersByStatus = {
+      pending: orders.filter((o) => o.status === "pending").length,
+      confirmed: orders.filter((o) => o.status === "confirmed").length,
+      preparing: orders.filter((o) => o.status === "preparing").length,
+      on_the_way: orders.filter((o) => o.status === "on_the_way").length,
+      delivered: orders.filter((o) => o.status === "delivered").length,
+      cancelled: orders.filter((o) => o.status === "cancelled").length,
+    }
+
+    // Popular items
+    const itemCounts: Record<string, { name: string; count: number; revenue: number }> = {}
+    orders.forEach((order) => {
+      order.items.forEach((item: any) => {
+        if (!itemCounts[item.name]) {
+          itemCounts[item.name] = { name: item.name, count: 0, revenue: 0 }
+        }
+        itemCounts[item.name].count += item.quantity
+        itemCounts[item.name].revenue += item.price * item.quantity
+      })
+    })
+
+    const popularItems = Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+
+    // Revenue by day (last 7 days)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      return date.toISOString().split("T")[0]
+    }).reverse()
+
+    const revenueByDay = last7Days.map((day) => {
+      const dayOrders = orders.filter((o) => {
+        const orderDay = new Date(o.createdAt).toISOString().split("T")[0]
+        return orderDay === day && o.status === "delivered"
+      })
+      const revenue = dayOrders.reduce(
+        (sum, o) => sum + o.totalAmount + o.deliveryFee,
+        0
+      )
+      return {
+        day: new Date(day).toLocaleDateString("en-US", { weekday: "short" }),
+        revenue: Math.round(revenue * 100) / 100,
+        orders: dayOrders.length,
+      }
+    })
+
+    res.status(200).json({
+      totalOrders,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      ordersByStatus,
+      popularItems,
+      revenueByDay,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
