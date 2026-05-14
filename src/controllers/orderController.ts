@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import Order from "../models/Order"
 import Restaurant from "../models/Restaurant"
 import { io } from "../index"
+import User from "../models/User"
 
 // @desc    Create a new order
 // @route   POST /api/orders
@@ -102,6 +103,13 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       status: order.status,
       message: getStatusMessage(status),
     })
+
+    // Give customer 10 points for every delivered order
+    if (status === "delivered") {
+      await User.findByIdAndUpdate(order.customerId, {
+        $inc: { foodiePoints: 10 },
+      })
+    }
 
     res.status(200).json({
       message: "Order status updated",

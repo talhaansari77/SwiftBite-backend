@@ -1,17 +1,33 @@
 import mongoose, { Document, Schema } from "mongoose"
 
+export interface IAddress {
+  _id?: string
+  label: string
+  address: string
+  isDefault: boolean
+}
+
 export interface IUser extends Document {
   name: string
   email: string
   password: string
   phone: string
-  address: string
+  addresses: IAddress[]
   avatar?: string
   role: "customer" | "restaurant" | "driver"
+  favourites: string[]
+  walletBalance: number
+  foodiePoints: number
   resetPasswordToken?: string
   resetPasswordExpiry?: Date
   createdAt: Date
 }
+
+const AddressSchema = new Schema({
+  label: { type: String, required: true },
+  address: { type: String, required: true },
+  isDefault: { type: Boolean, default: false },
+})
 
 const UserSchema = new Schema<IUser>(
   {
@@ -36,9 +52,9 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: [true, "Phone is required"],
     },
-    address: {
-      type: String,
-      default: "",
+    addresses: {
+      type: [AddressSchema],
+      default: [],
     },
     avatar: {
       type: String,
@@ -49,7 +65,19 @@ const UserSchema = new Schema<IUser>(
       enum: ["customer", "restaurant", "driver"],
       default: "customer",
     },
-     resetPasswordToken: {
+    favourites: {
+      type: [String],
+      default: [],
+    },
+    walletBalance: {
+      type: Number,
+      default: 0,
+    },
+    foodiePoints: {
+      type: Number,
+      default: 0,
+    },
+    resetPasswordToken: {
       type: String,
       default: undefined,
     },

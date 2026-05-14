@@ -99,8 +99,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        address: user.address,
+        addresses: user.addresses,
         avatar: user.avatar,
+        walletBalance: user.walletBalance,
+        foodiePoints: user.foodiePoints,
+        favourites: user.favourites,
       },
     })
   } catch (error) {
@@ -125,10 +128,10 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { address, phone, name } = req.body
+    const { name, phone } = req.body
     const user = await User.findByIdAndUpdate(
       (req as any).userId,
-      { address, phone, name },
+      { name, phone },
       { new: true }
     ).select("-password")
 
@@ -246,6 +249,128 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     })
 
     res.status(200).json({ message: "Password reset successfully" })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+// @desc    Get user addresses
+// @route   GET /api/auth/addresses
+export const getAddresses = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).userId).select("addresses")
+    res.status(200).json({ addresses: user?.addresses || [] })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Add address
+// @route   POST /api/auth/addresses
+export const addAddress = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { label, address, isDefault } = req.body
+
+    const user = await User.findById((req as any).userId)
+    if (!user) {
+      res.status(404).json({ message: "User not found" })
+      return
+    }
+
+    // If new address is default reset all others
+    if (isDefault) {
+      user.addresses.forEach((addr) => {
+        addr.isDefault = false
+      })
+    }
+
+    user.addresses.push({ label, address, isDefault: isDefault || false })
+    await user.save()
+
+    res.status(201).json({
+      message: "Address added successfully",
+      addresses: user.addresses,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Delete address
+// @route   DELETE /api/auth/addresses/:addressId
+export const deleteAddress = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).userId)
+    if (!user) {
+      res.status(404).json({ message: "User not found" })
+      return
+    }
+
+    user.addresses = user.addresses.filter(
+      (addr) => addr._id?.toString() !== req.params.addressId
+    )
+    await user.save()
+
+    res.status(200).json({
+      message: "Address deleted",
+      addresses: user.addresses,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Toggle favourite restaurant
+// @route   POST /api/auth/favourites/:restaurantId
+export const toggleFavourite = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).userId)
+    if (!user) {
+      res.status(404).json({ message: "User not found" })
+      return
+    }
+
+    const restaurantId = req.params.restaurantId
+    const isFavourite = user.favourites.includes(restaurantId)
+
+    if (isFavourite) {
+      user.favourites = user.favourites.filter((id) => id !== restaurantId)
+    } else {
+      user.favourites.push(restaurantId)
+    }
+
+    await user.save()
+
+    res.status(200).json({
+      message: isFavourite ? "Removed from favourites" : "Added to favourites",
+      isFavourite: !isFavourite,
+      favourites: user.favourites,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Add money to wallet
+// @route   POST /api/auth/wallet/add
+export const addToWallet = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { amount } = req.body
+
+    if (!amount || amount <= 0) {
+      res.status(400).json({ message: "Invalid amount" })
+      return
+    }
+
+    const user = await User.findByIdAndUpdate(
+      (req as any).userId,
+      { $inc: { walletBalance: amount } },
+      { new: true }
+    ).select("walletBalance")
+
+    res.status(200).json({
+      message: "Wallet topped up successfully",
+      walletBalance: user?.walletBalance,
+    })
   } catch (error: any) {
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
