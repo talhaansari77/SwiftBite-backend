@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken"
 import User from "../models/User"
 import crypto from "crypto"
 import { sendPasswordResetEmail } from "../config/emailService"
+import Restaurant from "../models/Restaurant"
 
 const generateToken = (id: string, role: string): string => {
   const secret = process.env.JWT_SECRET as string
@@ -15,25 +16,31 @@ const generateToken = (id: string, role: string): string => {
 // @route   POST /api/auth/register
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, phone, role } = req.body
+    const {
+      name,
+      email,
+      password,
+      phone,
+      role,
+      restaurantName,
+      cuisine,
+      restaurantAddress,
+      restaurantPhone,
+    } = req.body
 
-    // Check all fields
     if (!name || !email || !password || !phone) {
       res.status(400).json({ message: "All fields are required" })
       return
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       res.status(400).json({ message: "Email already in use" })
       return
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -42,7 +49,22 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: role || "customer",
     })
 
-    // Generate token
+    // Auto create restaurant if owner
+    if (role === "restaurant" && restaurantName) {
+      await Restaurant.create({
+        name: restaurantName,
+        description: `Welcome to ${restaurantName}!`,
+        cuisine: cuisine || "Various",
+        address: restaurantAddress || "",
+        phone: restaurantPhone || phone,
+        ownerId: user._id.toString(),
+        deliveryFee: 2.5,
+        minimumOrder: 10,
+        deliveryTime: "30-45 min",
+        image: "",
+      })
+    }
+
     const token = generateToken(user._id.toString(), user.role)
 
     res.status(201).json({
@@ -56,8 +78,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         role: user.role,
       },
     })
-  } catch (error) {
-    res.status(500).json({ message: "Something went wrong", error })
+  } catch (error: any) {
+    console.error("Register error:", error.message)
+    res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
 
