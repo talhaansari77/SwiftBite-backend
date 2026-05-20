@@ -11,6 +11,7 @@ import {
   deleteAddress,
   toggleFavourite,
   addToWallet,
+  setDefaultAddress,
 } from "../controllers/authController"
 import { protect } from "../middleware/authMiddleware"
 
@@ -33,5 +34,7 @@ router.post("/favourites/:restaurantId", protect, toggleFavourite)
 
 // Wallet
 router.post("/wallet/add", protect, addToWallet)
+
+router.put("/addresses/:addressId/default", protect, setDefaultAddress)
 
 export default router

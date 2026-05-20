@@ -398,3 +398,29 @@ export const addToWallet = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
+
+// @desc    Set default address
+// @route   PUT /api/auth/addresses/:addressId/default
+export const setDefaultAddress = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).userId)
+    if (!user) {
+      res.status(404).json({ message: "User not found" })
+      return
+    }
+
+    user.addresses = user.addresses.map((addr) => ({
+      ...addr,
+      isDefault: addr._id?.toString() === req.params.addressId,
+    })) as any
+
+    await user.save()
+
+    res.status(200).json({
+      message: "Default address updated",
+      addresses: user.addresses,
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
