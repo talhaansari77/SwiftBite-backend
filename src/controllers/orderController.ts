@@ -225,3 +225,18 @@ export const getRestaurantAnalytics = async (req: Request, res: Response): Promi
     res.status(500).json({ message: "Something went wrong", error: error.message })
   }
 }
+
+
+// @desc    Get available orders for drivers
+// @route   GET /api/orders/available
+export const getAvailableOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orders = await Order.find({
+      status: "preparing",
+    }).sort({ createdAt: -1 })
+
+    res.status(200).json({ orders })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
