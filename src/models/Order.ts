@@ -11,10 +11,13 @@ export interface IOrderItem {
 export interface IOrder extends Document {
   customerId: string
   restaurantId: string
+  restaurantName: string
+  restaurantImage: string
   driverId?: string
   items: IOrderItem[]
   totalAmount: number
   deliveryFee: number
+  discount: number
   status: "pending" | "confirmed" | "preparing" | "on_the_way" | "delivered" | "cancelled"
   address: string
   paymentStatus: "pending" | "paid" | "failed"
@@ -76,6 +79,18 @@ const OrderSchema = new Schema<IOrder>(
     paymentIntentId: {
       type: String,
       default: "",
+    },
+    restaurantName: {
+      type: String,
+      default: "",
+    },
+    restaurantImage: {
+      type: String,
+      default: "",
+    },
+    discount: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

@@ -8,21 +8,19 @@ import User from "../models/User"
 // @route   POST /api/orders
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { restaurantId, items, address, paymentMethod = "cash" } = req.body
+    const { restaurantId, items, address, paymentMethod = "cash", promoCode, discount } = req.body
 
     if (!restaurantId || !items || !address) {
       res.status(400).json({ message: "All fields are required" })
       return
     }
 
-    // Get restaurant for delivery fee
     const restaurant = await Restaurant.findById(restaurantId)
     if (!restaurant) {
       res.status(404).json({ message: "Restaurant not found" })
       return
     }
 
-    // Calculate total
     const totalAmount = items.reduce(
       (sum: number, item: any) => sum + item.price * item.quantity,
       0
@@ -31,12 +29,24 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     const order = await Order.create({
       customerId: (req as any).userId,
       restaurantId,
+      restaurantName: restaurant.name,
+      restaurantImage: restaurant.image,
       items,
       totalAmount,
       deliveryFee: restaurant.deliveryFee,
       address,
       paymentMethod,
+      discount: discount || 0,
     })
+
+    // Notify restaurant owner in real-time
+    // const restaurant = await Restaurant.findById(restaurantId)
+    if (restaurant) {
+      io.to(`owner_${restaurant.ownerId}`).emit("new_order", {
+        orderId: order._id,
+        restaurantName: restaurant.name,
+      })
+    }
 
     res.status(201).json({
       message: "Order placed successfully",

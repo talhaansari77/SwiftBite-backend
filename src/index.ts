@@ -69,16 +69,24 @@ app.use(express.urlencoded({ extended: true }))
 io.on("connection", (socket) => {
   console.log(`⚡ Client connected: ${socket.id}`)
 
-  // When a customer opens their order detail screen
-  // they join a "room" named after their order ID
-  // this means we can send updates to ONLY that customer
-  // instead of broadcasting to everyone
+  // Customer order room
   socket.on("join_order", (orderId: string) => {
     socket.join(orderId)
     console.log(`📦 Client joined order room: ${orderId}`)
   })
 
-  // Fires when a client disconnects (closes app, loses connection etc.)
+  // Owner room
+  socket.on("join_owner", (ownerId: string) => {
+    socket.join(`owner_${ownerId}`)
+    console.log(`🏪 Owner joined room: owner_${ownerId}`)
+  })
+
+  // Driver room
+  socket.on("join_driver", (driverId: string) => {
+    socket.join(`driver_${driverId}`)
+    console.log(`🛵 Driver joined room: driver_${driverId}`)
+  })
+
   socket.on("disconnect", () => {
     console.log(`❌ Client disconnected: ${socket.id}`)
   })
