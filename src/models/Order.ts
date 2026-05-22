@@ -11,6 +11,7 @@ export interface IOrderItem {
 export interface IOrder extends Document {
   customerId: string
   restaurantId: string
+  driverId?: string
   items: IOrderItem[]
   totalAmount: number
   deliveryFee: number
@@ -39,6 +40,10 @@ const OrderSchema = new Schema<IOrder>(
     restaurantId: {
       type: String,
       required: true,
+    },
+    driverId: {
+      type: String,
+      default: null,
     },
     items: [OrderItemSchema],
     totalAmount: {

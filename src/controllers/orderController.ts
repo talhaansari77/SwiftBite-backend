@@ -83,11 +83,19 @@ export const getOrder = async (req: Request, res: Response): Promise<void> => {
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.body
+    const userId = (req as any).userId
+    const userRole = (req as any).userRole
 
-    // Update order status in database
+    const updateData: any = { status }
+
+    // If driver is accepting the order assign them
+    if (status === "on_the_way" && userRole === "driver") {
+      updateData.driverId = userId
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
+      updateData,
       { new: true }
     )
 
@@ -96,20 +104,19 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       return
     }
 
-    // Emit real-time update to the customer
-    // Only the customer in this order's room will receive this
-    io.to(order._id.toString()).emit("order_status_update", {
-      orderId: order._id,
-      status: order.status,
-      message: getStatusMessage(status),
-    })
-
-    // Give customer 10 points for every delivered order
+    // Give customer points on delivery
     if (status === "delivered") {
       await User.findByIdAndUpdate(order.customerId, {
         $inc: { foodiePoints: 10 },
       })
     }
+
+    // Emit real-time update
+    io.to(order._id.toString()).emit("order_status_update", {
+      orderId: order._id,
+      status: order.status,
+      message: getStatusMessage(status),
+    })
 
     res.status(200).json({
       message: "Order status updated",
@@ -227,12 +234,27 @@ export const getRestaurantAnalytics = async (req: Request, res: Response): Promi
 }
 
 
-// @desc    Get available orders for drivers
-// @route   GET /api/orders/available
+
 export const getAvailableOrders = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Show orders that are preparing and have no driver assigned
     const orders = await Order.find({
       status: "preparing",
+      driverId: null,
+    }).sort({ createdAt: -1 })
+
+    res.status(200).json({ orders })
+  } catch (error: any) {
+    res.status(500).json({ message: "Something went wrong", error: error.message })
+  }
+}
+
+// @desc    Get driver's accepted orders
+// @route   GET /api/orders/driver/my-orders
+export const getDriverOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orders = await Order.find({
+      driverId: (req as any).userId,
     }).sort({ createdAt: -1 })
 
     res.status(200).json({ orders })
