@@ -14,10 +14,10 @@ const router = Router()
 
 router.post("/", protect, createOrder)
 router.get("/my-orders", protect, getMyOrders)
-router.get("/:id", protect, getOrder)
-router.put("/:id/status", protect, updateOrderStatus)
+router.get("/available", protect, getAvailableOrders)  // ← must be before /:id
 router.get("/restaurant/:restaurantId", protect, getRestaurantOrders)
 router.get("/restaurant/:restaurantId/analytics", protect, getRestaurantAnalytics)
-router.get("/available", protect, getAvailableOrders)
+router.get("/:id", protect, getOrder)          // ← must be after specific routes
+router.put("/:id/status", protect, updateOrderStatus)
 
 export default router
