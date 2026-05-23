@@ -47,6 +47,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         restaurantName: restaurant.name,
       })
     }
+    // Notify all online drivers about new available order
+    // when order becomes preparing
+    io.emit("new_available_order", {
+      orderId: order._id,
+    })
 
     res.status(201).json({
       message: "Order placed successfully",
